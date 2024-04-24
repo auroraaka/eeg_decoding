@@ -54,7 +54,7 @@ train:
   epochs: 1
   learning_rate: 0.001
   weight_decay: 0.01
-  device: "cpu"
+  device: "cuda"
   seed: 42
 
 
