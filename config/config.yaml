@@ -3,7 +3,7 @@ datasets:
   interval: 3
   target_channels: 61
   brennan_hale: 
-    path: "/content/drive/My Drive/EEG Thought-to-Action/Datasets/Brennan_Hale"
+    path: "/content/drive/My Drive/EEG Thought-to-Action/Datasets/Brennan and Hale"
     subjects: ["S01"]
     original_fs: 500
     num_channels: 61
