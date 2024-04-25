@@ -30,15 +30,17 @@ class BrainAdapter(ABC):
 
     def __init__(self, config):
         super(BrainAdapter, self).__init__()
-        self.encoder = build_brain_encoder(config)
-        self.projector = build_prefix_projector(config)
+        self.encoder = build_brain_encoder(config).to(self.device)
+        self.projector = build_prefix_projector(config).to(self.device)
     
     @abstractmethod
     def get_model(self):
         pass
 
     def encode_images(self, eegs, subject_index):
-        batch = SegmentBatch(meg=eegs.to(self.device), subject_index=subject_index)
+        eegs = eegs.to(self.device)
+        print(eegs.device)
+        batch = SegmentBatch(meg=eegs, subject_index=subject_index)
         print(batch.meg.device)
         print(batch.subject_index.device)
         eeg_features = self.encoder(dict(meg=eegs), batch)
