@@ -39,7 +39,8 @@ class BrainAdapter(ABC):
 
     def encode_images(self, eegs, subject_index):
         batch = SegmentBatch(meg=eegs.to(self.device), subject_index=subject_index)
-        print(batch.device)
+        print(batch.meg.device)
+        print(batch.subject_index.device)
         eeg_features = self.encoder(dict(meg=eegs), batch)
         print(eeg_features.device)
         eeg_features = self.projector(eeg_features)
