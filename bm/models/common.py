@@ -14,7 +14,7 @@ import torch
 from torch import nn
 
 from ..studies.api import Recording
-from ..utils import retrieve_matching_electrodes
+from src.utils import retrieve_matching_electrodes
 
 
 logger = logging.getLogger(__name__)
