@@ -6,10 +6,10 @@ import typing as tp
 from abc import ABC, abstractmethod
 from transformers import AutoConfig, LlamaForCausalLM
 
-from src.constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
-from src.brain_encoder import build_brain_encoder
-from src.prefix_projector import build_prefix_projector
-from src.config import update_config
+from constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX
+from brain_encoder import build_brain_encoder
+from prefix_projector import build_prefix_projector
+from config import update_config
 
 from bm.events import Event
 from bm.studies import Recording
@@ -30,8 +30,8 @@ class BrainAdapter(ABC):
 
     def __init__(self, config):
         super(BrainAdapter, self).__init__()
-        self.encoder = build_brain_encoder(config).to(self.device)
-        self.projector = build_prefix_projector(config).to(self.device)
+        self.encoder = build_brain_encoder(config)
+        self.projector = build_prefix_projector(config)
     
     @abstractmethod
     def get_model(self):

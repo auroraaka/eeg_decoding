@@ -343,7 +343,6 @@ class ChannelMerger(nn.Module):
         #positions = self.position_getter.get_positions(batch)
         positions = self.get_positions(B)
         positions = positions.to(meg.device)
-        positions = positions.to(meg.device)
         embedding = self.embedding(positions)
         score_offset = torch.zeros(B, C, device=meg.device)
         score_offset[self.position_getter.is_invalid(positions)] = float('-inf')
