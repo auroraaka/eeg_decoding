@@ -43,8 +43,6 @@ class BrainAdapter(ABC):
         batch = SegmentBatch(meg=eegs, subject_index=subject_index)
         print(f"batch.meg device: {batch.meg.device}")
         print(f"batch.subject_index device: {batch.subject_index.device}")
-        print(f"encoder device: {self.encoder.device}")
-        print(f"projector device: {self.projector.device}")
         eeg_features = self.encoder(dict(meg=eegs), batch)
         print(eeg_features.device)
         eeg_features = self.projector(eeg_features)
