@@ -38,15 +38,9 @@ class BrainAdapter(ABC):
         pass
 
     def encode_images(self, eegs, subject_index):
-        eegs = eegs.to(self.device)
-        print(f"eegs device: {eegs.device}")
         batch = SegmentBatch(meg=eegs, subject_index=subject_index)
-        print(f"batch.meg device: {batch.meg.device}")
-        print(f"batch.subject_index device: {batch.subject_index.device}")
         eeg_features = self.encoder(dict(meg=eegs), batch)
-        print(eeg_features.device)
         eeg_features = self.projector(eeg_features)
-        print(eeg_features.device)
         return eeg_features
     
     def prepare_inputs_labels_for_multimodal(self, input_ids, attention_mask, position_ids, past_key_values, labels, eegs, subject_index):
