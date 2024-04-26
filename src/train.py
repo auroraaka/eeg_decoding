@@ -43,7 +43,7 @@ def train(model, dataloader, optimizer, epochs, device):
             losses.append(curr_loss)
             perplexity = torch.exp(torch.tensor(curr_loss))
             perplexities.append(perplexity.item())
-            
+            print(f"Loss: {curr_loss}, Perplexity: {perplexity.item()}")
             update_plots(losses, perplexities)
     
     plt.ioff()
