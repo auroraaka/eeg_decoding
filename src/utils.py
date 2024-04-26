@@ -1,4 +1,5 @@
 import torch
+import json
 import numpy as np
 import dataclasses
 import typing as tp
@@ -59,12 +60,37 @@ def find_matching_electrodes():
                 closest_electrodes[label1] = label2
                 assigned.add(label2)
                 break
+    
+    electrode_names = closest_electrodes
+    electrode_indices = (torch.tensor(list(closest_electrodes.values())) - 1).tolist()
 
-    return closest_electrodes, torch.tensor(list(closest_electrodes.values())) - 1
+    matching_electrodes = {
+        'electrode_names': electrode_names,
+        'electrode_indices': electrode_indices,
+        'brennan_hale_positions': brennan_hale_positions,
+        'broderick_positions': broderick_positions
+    }
+
+    with open('matching_electrodes.json', 'w') as file:
+        json.dump(matching_electrodes, file)
+    
+    config = Config("config/config.yaml")
+    config.datasets.matching_electrodes = True
+    config.save()
+
+    return matching_electrodes
+
+def retrieve_matching_electrodes():
+    with open('matching_electrodes.json', 'r') as file:
+        matching_electrodes = json.load(file)
+    return matching_electrodes
 
 def prepare_inputs(config, eeg, subjects, labels):
-    _, select_indices = find_matching_electrodes()
-    _eeg = eeg[:, select_indices, :].float()
+    if config.datasets.matching_electrodes:
+        electrode_indices = retrieve_matching_electrodes()['electrode_indices']
+    else:
+        electrode_indices = find_matching_electrodes()['electrode_indices']
+    _eeg = eeg[:, electrode_indices, :].float()
     _subjects = subjects[:]
 
     tokenizer = AutoTokenizer.from_pretrained(config.llama.model_name, token=config.llama.token)
