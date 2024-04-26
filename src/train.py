@@ -36,13 +36,12 @@ def train(model, dataloader, optimizer, epochs, device):
             optimizer.zero_grad()
             outputs = model(input_ids=input_ids, labels=labels, eegs=eeg, subject_index=subject)
             loss = outputs.loss
-            total_loss += loss.item()
             loss.backward()
             optimizer.step()
 
-            avg_loss = total_loss / len(dataloader)
-            losses.append(avg_loss)
-            perplexity = torch.exp(torch.tensor(avg_loss))
+            curr_loss = loss.item()
+            losses.append(curr_loss)
+            perplexity = torch.exp(torch.tensor(curr_loss))
             perplexities.append(perplexity.item())
             
             update_plots(losses, perplexities)
