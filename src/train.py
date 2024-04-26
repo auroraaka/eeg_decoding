@@ -40,12 +40,12 @@ def train(model, dataloader, optimizer, epochs, device):
             loss.backward()
             optimizer.step()
 
-        avg_loss = total_loss / len(dataloader)
-        losses.append(avg_loss)
-        perplexity = torch.exp(torch.tensor(avg_loss))
-        perplexities.append(perplexity.item())
-        
-        update_plots(losses, perplexities)
+            avg_loss = total_loss / len(dataloader)
+            losses.append(avg_loss)
+            perplexity = torch.exp(torch.tensor(avg_loss))
+            perplexities.append(perplexity.item())
+            
+            update_plots(losses, perplexities)
     
     plt.ioff()
 
