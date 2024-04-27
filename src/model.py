@@ -48,6 +48,7 @@ class BrainAdapter(ABC):
     def prepare_inputs_labels_for_multimodal(self, input_ids, attention_mask, position_ids, past_key_values, labels, eegs, subject_index):
 
         image_features = self.encode_images(eegs, subject_index)
+        image_features = torch.rand(image_features.shape, requires_grad=True)
 
         _labels = labels
         _position_ids = position_ids
