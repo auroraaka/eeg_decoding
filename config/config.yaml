@@ -2,7 +2,7 @@ datasets:
   resampled_fs: 120
   interval: 3
   target_channels: 61
-  matching_electrodes: False
+  matching_electrodes: True
   brennan_hale: 
     path: "/content/drive/My Drive/EEG Thought-to-Action/Datasets/Brennan and Hale"
     subjects: ["S01"]
@@ -51,12 +51,14 @@ tokenizer:
   return_attention_mask: True
 
 train:
-  batch_size: 2
-  epochs: 1
-  learning_rate: 0.001
+  batch_size: 10
+  epochs: 5
+  learning_rate: 0.0001
   weight_decay: 0.01
   device: "cuda"
   seed: 42
 
+ablations:
+  random_eeg_features: false
 
 
