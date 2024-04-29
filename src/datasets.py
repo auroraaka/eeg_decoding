@@ -21,11 +21,11 @@ class EEGDataset(ABC):
         self.STIM_PATH = self.path + "/Stimuli/Text/"
 
         self.subjects = subjects if not None else self.detect_subjects()
-        self.electrodes = self.get_electrodes()
+        self.electrodes_cartesian, self.electrodes_spherical = self.get_electrodes()
         self.num_channels = (
             num_channels
-            if num_channels <= len(self.electrodes)
-            else len(self.electrodes)
+            if num_channels <= len(self.electrodes_cartesian)
+            else len(self.electrodes_cartesian)
         )
 
         self.original_fs = original_fs
@@ -110,6 +110,30 @@ Single Subject Labels Shape: {self.labels_shape}
 """
 
 
+def spherical_to_cartesian(theta, phi, r=9):
+    theta = np.deg2rad(theta)
+    phi = np.deg2rad(phi)
+
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+
+    return float(x), float(y), float(z)
+
+def cartesian_to_spherical(x, y, z):
+    r = np.sqrt(x**2 + y**2 + z**2)
+    theta = np.rad2deg(np.arccos(z / r))
+    phi = np.rad2deg(np.arctan2(y, x))
+    theta, phi = round(theta), round(phi)
+
+    if phi >= 90:
+        theta, phi = -theta, -180+phi
+    if phi <= -90:
+        theta, phi = -theta, 180+phi
+    if (theta < 0 and abs(phi-90) < 1):
+        theta, phi = -theta, -phi
+    return theta, phi
+
 class BrennanHaleDataset(EEGDataset):
     def __init__(self, config):
         path = config.datasets.path + "/" + config.datasets.brennan_hale.path
@@ -133,43 +157,31 @@ class BrennanHaleDataset(EEGDataset):
         if os.path.exists(self.path + '/easycap_M10.txt'):
             with open(self.path + '/easycap_M10.txt', 'r') as file:
                 next(file)
-                electrode_positions = {line.strip().split()[0]: (float(line.strip().split()[1]), float(line.strip().split()[2])) for line in file}
-            return electrode_positions
+                electrodes_spherical = {line.strip().split()[0]: (float(line.strip().split()[1]), float(line.strip().split()[2])) for line in file}
+            electrodes_cartesian = {site: spherical_to_cartesian(*angles) for site, angles in electrodes_spherical.items()}
+            return electrodes_cartesian, electrodes_spherical
         else:
             return self.convert_electrodes()
 
     def convert_electrodes(self):
-
-        def cartesian_to_spherical(x, y, z):
-            r = np.sqrt(x**2 + y**2 + z**2)
-            theta = np.rad2deg(np.arccos(z / r))
-            phi = np.rad2deg(np.arctan2(y, x))
-            theta, phi = round(theta), round(phi)
-
-            if phi >= 90:
-                theta, phi = -theta, -180+phi
-            if phi <= -90:
-                theta, phi = -theta, 180+phi
-            if (theta < 0 and abs(phi-90) < 1):
-                theta, phi = -theta, -phi
-            return theta, phi
         
-        electrode_positions = {}
+        electrodes_cartesian = {}
         with open(self.path + "/easycapM10-acti61_elec.sfp", "r") as file:
             for line in file:
                 parts = line.strip().split()
                 if len(parts) == 4:
                     site, x, y, z = parts
                     coords = [float(x), float(y), float(z)]
-                    electrode_positions[site] = cartesian_to_spherical(*coords)
-        
+                    electrodes_cartesian[site] = coords
+                    
+        electrodes_spherical = {site: cartesian_to_spherical(*coords) for site, coords in electrodes_cartesian.items()}
         with open(self.path + '/easycap_M10.txt', 'w') as file:
             file.write("Site\tTheta\tPhi\n")
-            for site, angles in electrode_positions.items():
+            for site, angles in electrodes_spherical.items():
                 theta, phi = angles
                 file.write(f"{site}\t{theta}\t{phi}\n")
 
-        return electrode_positions
+        return electrodes_cartesian, electrodes_spherical
 
 
     def signal_process(self, raw):
@@ -265,8 +277,7 @@ class BroderickDataset(EEGDataset):
         }
 
     def get_electrodes(self):
-        electrode_mapping = {}
-        electrode_positions = {}
+        electrodes_spherical = {}
         with open(self.EEG_PATH + "biosemi128.txt", "r") as file:
             next(file)
             i = 0
@@ -277,9 +288,9 @@ class BroderickDataset(EEGDataset):
                 parts = line.strip().split("\t")
                 if len(parts) == 3:
                     site, theta, phi = parts
-                    electrode_mapping[i] = site
-                    electrode_positions[i] = [float(theta), float(phi)]
-        return electrode_positions
+                    electrodes_spherical[i] = [float(theta), float(phi)]
+        electrodes_cartesian = {site: spherical_to_cartesian(*angles) for site, angles in electrodes_spherical.items()}
+        return electrodes_cartesian, electrodes_spherical
 
     def signal_process(self, x):
         def highpass_filter(x, cutoff=0.1, order=5):

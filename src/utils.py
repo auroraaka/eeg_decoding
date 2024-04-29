@@ -17,11 +17,33 @@ from src.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from bm.events import Event
 from bm.studies import Recording
 
-def find_matching_electrodes(config):
+
+def get_positions(config):
     mod_config = config.deepcopy()
     mod_config.datasets.brennan_hale.subjects = mod_config.datasets.broderick.subjects = ['S01']
-    bh = BrennanHaleDataset(mod_config).electrodes
-    br = BroderickDataset(mod_config).electrodes
+    bh_cartesian, bh_spherical = BrennanHaleDataset(mod_config).electrodes_cartesian, BrennanHaleDataset(mod_config).electrodes_spherical
+    br_cartesian, br_spherical = BroderickDataset(mod_config).electrodes_cartesian, BroderickDataset(mod_config).electrodes_spherical
+
+    positions = {
+        'brennan_hale': {
+            'cartesian': bh_cartesian,
+            'spherical': bh_spherical
+        },
+        'broderick': {
+            'cartesian': br_cartesian,
+            'spherical': br_spherical
+        }
+    }
+    
+    with open(config.datasets.path + '/positions.json', 'w') as file:
+        json.dump(positions, file)
+    return positions
+
+def find_matching_electrodes(config):
+
+    positions = get_positions(config)
+    bh = positions['brennan_hale']['spherical']
+    br = positions['broderick']['spherical']
 
     bh2br = {}
     br = np.array(list(br.values()))
