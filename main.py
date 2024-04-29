@@ -1,7 +1,7 @@
 from src.config import Config
 from src.datasets import BroderickDataset
 from src.preprocessor import Preprocessor
-from src.utils import prepare_inputs, EEGDataset
+from src.utils import prepare_inputs, DatasetWrapper
 from src.model import EEGAdapterLlamaForCausalLM
 from src.train import train, make_splits
 
