@@ -26,9 +26,10 @@ def train(model, train_dataloader, valid_dataloader, optimizer, epochs, device):
     plt.ion()
     
     for epoch in range(epochs):
-
         model.train()
         total_train_loss = 0
+        iteration = 0  
+
         for (eeg, subject, input_ids), labels in train_dataloader:
             eeg, subject, input_ids, labels = eeg.to(device), subject.to(device), input_ids.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -43,23 +44,22 @@ def train(model, train_dataloader, valid_dataloader, optimizer, epochs, device):
             train_perplexity = torch.exp(torch.tensor(curr_loss))
             train_perplexities.append(train_perplexity.item())
 
+            iteration += 1
+            if iteration % 5 == 0:
+                model.eval()
+                total_valid_loss = 0
+                for (eeg, subject, input_ids), labels in valid_dataloader:
+                    eeg, subject, input_ids, labels = eeg.to(device), subject.to(device), input_ids.to(device), labels.to(device)
+                    outputs = model(input_ids=input_ids, labels=labels, eegs=eeg, subject_index=subject)
+                    valid_loss = outputs.loss.item()
+                    total_valid_loss += valid_loss
+                    valid_losses.append(valid_loss)
+                    valid_perplexity = torch.exp(torch.tensor(valid_loss))
+                    valid_perplexities.append(valid_perplexity.item())
 
-        model.eval()
-        total_valid_loss = 0
-        with torch.no_grad():
-            for (eeg, subject, input_ids), labels in valid_dataloader:
-                eeg, subject, input_ids, labels = eeg.to(device), subject.to(device), input_ids.to(device), labels.to(device)
-                outputs = model(input_ids=input_ids, labels=labels, eegs=eeg, subject_index=subject)
-                loss = outputs.loss
-                total_valid_loss += loss.item()
-
-                valid_loss = loss.item()
-                valid_losses.append(valid_loss)
-                valid_perplexity = torch.exp(torch.tensor(valid_loss))
-                valid_perplexities.append(valid_perplexity.item())
+                update_plots(train_losses, train_perplexities, valid_losses, valid_perplexities)
 
         print(f"Epoch {epoch+1}, Train Loss: {total_train_loss/len(train_dataloader)}, Valid Loss: {total_valid_loss/len(valid_dataloader)}")
-        update_plots(train_losses, train_perplexities, valid_losses, valid_perplexities)
     
     plt.ioff()
 
@@ -68,8 +68,8 @@ def update_plots(train_losses, train_perplexities, valid_losses, valid_perplexit
     clear_output(wait=True)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
-    ax1.plot(train_losses[-10:], label='Train Loss', color='blue')
-    ax1.plot(valid_losses[-10:], label='Valid Loss', color='green')
+    ax1.plot(train_losses[-20:], label='Train Loss', color='blue')
+    ax1.plot(valid_losses[-20:], label='Valid Loss', color='green')
     ax1.set_title('Loss')
     ax1.set_xlabel('Iteration')
     ax1.set_ylabel('Loss')
