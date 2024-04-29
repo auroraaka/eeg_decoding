@@ -7,7 +7,7 @@ from IPython.display import clear_output
 def make_splits(config, dataset, train=0.8, val=0.1, test=0.1):
     train_size = int(len(dataset) * train)
     val_size = int(len(dataset) * val)
-    test_size = int(len(dataset) * test)
+    test_size = len(dataset) - train_size - val_size
     train_set, val_set, test_set = random_split(dataset, [train_size, val_size, test_size])
 
     train_loader =  DataLoader(train_set, batch_size=config.train.batch_size, shuffle=True)
