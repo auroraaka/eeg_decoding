@@ -21,11 +21,11 @@ class EEGDataset(ABC):
         self.STIM_PATH = self.path + "/Stimuli/Text/"
 
         self.subjects = subjects if not None else self.detect_subjects()
-        self.electrode_mapping, self.electrode_positions = self.get_electrodes()
+        self.electrodes = self.get_electrodes()
         self.num_channels = (
             num_channels
-            if num_channels <= len(self.electrode_mapping)
-            else len(self.electrode_mapping)
+            if num_channels <= len(self.electrodes)
+            else len(self.electrodes)
         )
 
         self.original_fs = original_fs
@@ -112,7 +112,7 @@ Single Subject Labels Shape: {self.labels_shape}
 
 class BrennanHaleDataset(EEGDataset):
     def __init__(self, config):
-        path = config.datasets.brennan_hale.path
+        path = config.datasets.path + "/" + config.datasets.brennan_hale.path
         subjects = config.datasets.brennan_hale.subjects
         original_fs = config.datasets.brennan_hale.original_fs
         num_channels = config.datasets.brennan_hale.num_channels
@@ -130,32 +130,47 @@ class BrennanHaleDataset(EEGDataset):
         }
 
     def get_electrodes(self):
+        if os.path.exists(self.path + '/easycap_M10.txt'):
+            with open(self.path + '/easycap_M10.txt', 'r') as file:
+                next(file)
+                electrode_positions = {line.strip().split()[0]: (float(line.strip().split()[1]), float(line.strip().split()[2])) for line in file}
+            return electrode_positions
+        else:
+            return self.convert_electrodes()
+
+    def convert_electrodes(self):
+
+        def cartesian_to_spherical(x, y, z):
+            r = np.sqrt(x**2 + y**2 + z**2)
+            theta = np.rad2deg(np.arccos(z / r))
+            phi = np.rad2deg(np.arctan2(y, x))
+            theta, phi = round(theta), round(phi)
+
+            if phi >= 90:
+                theta, phi = -theta, -180+phi
+            if phi <= -90:
+                theta, phi = -theta, 180+phi
+            if (theta < 0 and abs(phi-90) < 1):
+                theta, phi = -theta, -phi
+            return theta, phi
+        
         electrode_positions = {}
         with open(self.path + "/easycapM10-acti61_elec.sfp", "r") as file:
             for line in file:
                 parts = line.strip().split()
                 if len(parts) == 4:
-                    label, x, y, z = parts
-                    coordinates = [float(x), float(y), float(z)]
-                    electrode_positions[label] = coordinates
+                    site, x, y, z = parts
+                    coords = [float(x), float(y), float(z)]
+                    electrode_positions[site] = cartesian_to_spherical(*coords)
+        
+        with open(self.path + '/easycap_M10.txt', 'w') as file:
+            file.write("Site\tTheta\tPhi\n")
+            for site, angles in electrode_positions.items():
+                theta, phi = angles
+                file.write(f"{site}\t{theta}\t{phi}\n")
 
-        standard_positions = mne.channels.make_standard_montage(
-            "standard_1020"
-        ).get_positions()["ch_pos"]
+        return electrode_positions
 
-        electrode_mapping = {}
-        for custom_label, custom_coord in electrode_positions.items():
-            closest_standard_label = None
-            min_distance = float("inf")
-            for standard_label, standard_coord in standard_positions.items():
-                distance = np.linalg.norm(
-                    np.array(custom_coord) - np.array(standard_coord)
-                )
-                if distance < min_distance:
-                    min_distance = distance
-                    closest_standard_label = standard_label
-            electrode_mapping[custom_label] = closest_standard_label
-        return electrode_mapping, electrode_positions
 
     def signal_process(self, raw):
         # High Pass Filter 0.1 Hz
@@ -230,7 +245,7 @@ class BrennanHaleDataset(EEGDataset):
 
 class BroderickDataset(EEGDataset):
     def __init__(self, config):
-        path = config.datasets.broderick.path
+        path = config.datasets.path + "/" + config.datasets.broderick.path
         subjects = config.datasets.broderick.subjects
         original_fs = config.datasets.broderick.original_fs
         num_channels = config.datasets.broderick.num_channels
@@ -251,7 +266,7 @@ class BroderickDataset(EEGDataset):
 
     def get_electrodes(self):
         electrode_mapping = {}
-        custom_positions = {}
+        electrode_positions = {}
         with open(self.EEG_PATH + "biosemi128.txt", "r") as file:
             next(file)
             i = 0
@@ -261,10 +276,10 @@ class BroderickDataset(EEGDataset):
                     break
                 parts = line.strip().split("\t")
                 if len(parts) == 3:
-                    label, theta, phi = parts
-                    electrode_mapping[i] = label
-                    custom_positions[i] = [float(theta), float(phi)]
-        return electrode_mapping, custom_positions
+                    site, theta, phi = parts
+                    electrode_mapping[i] = site
+                    electrode_positions[i] = [float(theta), float(phi)]
+        return electrode_positions
 
     def signal_process(self, x):
         def highpass_filter(x, cutoff=0.1, order=5):

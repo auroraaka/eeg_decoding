@@ -1,5 +1,6 @@
 import torch
 import json
+import os
 import numpy as np
 import dataclasses
 import typing as tp
@@ -16,80 +17,42 @@ from src.constants import DEFAULT_IMAGE_TOKEN, IMAGE_TOKEN_INDEX
 from bm.events import Event
 from bm.studies import Recording
 
-def find_matching_electrodes():
-    mod_config = Config("config/config.yaml")
+def find_matching_electrodes(config):
+    mod_config = config.deepcopy()
     mod_config.datasets.brennan_hale.subjects = mod_config.datasets.broderick.subjects = ['S01']
-    _, brennan_hale_positions = BrennanHaleDataset(mod_config).get_electrodes()
-    _, broderick_positions = BroderickDataset(mod_config).get_electrodes()
+    bh = BrennanHaleDataset(mod_config).electrodes
+    br = BroderickDataset(mod_config).electrodes
 
-    def transform_positions(r, positions):
-        return {
-            label: [r * np.sin(np.radians(theta)) * np.cos(np.radians(phi)),
-                    r * np.sin(np.radians(theta)) * np.sin(np.radians(phi)),
-                    r * np.cos(np.radians(theta))] 
-            for label, (theta, phi) in positions.items()
-        }
+    bh2br = {}
+    br = np.array(list(br.values()))
+    for bh_site, (theta, phi) in bh.items():
+        distances = np.linalg.norm(br - np.array([theta, phi]), axis=1)
+        distances[list(bh2br.values())] = np.inf
+        br_site = np.argmin(distances)
+        bh2br[int(bh_site)-1] = int(br_site)
 
-    def total_distance_error(r, positions1, positions2):
-        positions2 = transform_positions(r[0], positions2)
-        total_error = sum(
-            min(np.linalg.norm(np.array(coord1) - np.array(coord2))
-                for _, coord2 in positions2.items())
-            for _, coord1 in positions1.items()
-        )
-        return total_error
+    with open(config.datasets.path + '/electrode_mapping.json', 'w') as file:
+        json.dump(bh2br, file)
 
-    res = minimize(total_distance_error, x0=[10], args=(brennan_hale_positions, broderick_positions), bounds=[(1, 20)])
-    r, error = res.x[0], res.fun 
-    broderick_positions = transform_positions(r, broderick_positions)
+    return bh2br
 
-    distance_mappings = defaultdict(list)
-    for label1, coord1 in brennan_hale_positions.items():
-        for label2, coord2 in broderick_positions.items():
-            distance = np.linalg.norm(np.array(coord1) - np.array(coord2))
-            distance_mappings[label1].append((label2, distance))
-
-    for distances in distance_mappings.values():
-        distances.sort(key=lambda x: x[1])
-
-    closest_electrodes = {}
-    assigned = set()
-    for label1, distances in distance_mappings.items():
-        for label2, _ in distances:
-            if label2 not in assigned:
-                closest_electrodes[label1] = label2
-                assigned.add(label2)
-                break
+def get_indices(site2site):
+    indices = [0] * len(site2site)
+    for s1, s2 in site2site.items():
+        indices[int(s1)] = int(s2)
+    return indices
     
-    electrode_names = closest_electrodes
-    electrode_indices = (torch.tensor(list(closest_electrodes.values())) - 1).tolist()
-
-    matching_electrodes = {
-        'electrode_names': electrode_names,
-        'electrode_indices': electrode_indices,
-        'brennan_hale_positions': brennan_hale_positions,
-        'broderick_positions': broderick_positions
-    }
-
-    with open('matching_electrodes.json', 'w') as file:
-        json.dump(matching_electrodes, file)
-    
-    config = Config("config/config.yaml")
-    config.datasets.matching_electrodes = True
-    config.save()
-
-    return matching_electrodes
-
-def retrieve_matching_electrodes():
-    with open('matching_electrodes.json', 'r') as file:
-        matching_electrodes = json.load(file)
-    return matching_electrodes
+def retrieve_matching_electrodes(config):
+    path = config.datasets.path + '/electrode_mapping.json'
+    if os.path.exists(path):
+        with open(path, 'r') as file:
+            bh2br = json.load(file)
+    else:
+        bh2br = find_matching_electrodes(config)
+    return get_indices(bh2br)
 
 def prepare_inputs(config, eeg, subjects, labels):
-    if config.datasets.matching_electrodes:
-        electrode_indices = retrieve_matching_electrodes()['electrode_indices']
-    else:
-        electrode_indices = find_matching_electrodes()['electrode_indices']
+    electrode_indices = retrieve_matching_electrodes(config)
     _eeg = eeg[:, electrode_indices, :].float()
     _subjects = subjects[:]
 
@@ -133,7 +96,7 @@ class SegmentBatch:
     def __len__(self) -> int:
         return len(self.meg)
 
-class EEGDataset(Dataset):
+class DatasetWrapper(Dataset):
 
     def __init__(self, eegs, subjects, inputs, labels):
         self.eegs = eegs
