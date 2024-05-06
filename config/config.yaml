@@ -10,7 +10,7 @@ datasets:
     num_channels: 61
   broderick:
     path: "Broderick"
-    subjects: ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17", "S18", "S19"]
+    subjects: ["S01"]
     original_fs: 128
     num_channels: 128
 
@@ -51,7 +51,7 @@ tokenizer:
   return_attention_mask: True
 
 train:
-  batch_size: 32
+  batch_size: 10
   epochs: 10
   learning_rate: 0.0001
   weight_decay: 0.01
