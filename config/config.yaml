@@ -2,14 +2,14 @@ datasets:
   resampled_fs: 120
   interval: 3
   target_channels: 61
-  path: "datasets"
+  path: "/content/drive/My Drive/EEG Thought-to-Action/Datasets"
   brennan_hale: 
-    path: "brennan_hale"
+    path: "Brennan and Hale"
     subjects: ["S01"]
     original_fs: 500
     num_channels: 61
   broderick:
-    path: "broderick"
+    path: "Broderick"
     subjects: ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13", "S14", "S15", "S16", "S17", "S18", "S19"]
     original_fs: 128
     num_channels: 128
@@ -23,7 +23,7 @@ preprocessor:
   return_onesided: True
 
 encoder:
-  checkpoint_path: "checkpoint/checkpoint.th"
+  checkpoint_path: "/content/drive/My Drive/EEG Thought-to-Action/Checkpoint/checkpoint.th"
   meta_config_path: "config/meta_config.yaml"
   clip_conv_config_path: "config/clip_conv.yaml"
   out_channels: 10
@@ -59,7 +59,7 @@ train:
   seed: 42
 
 ablations:
-  random_features: false
+  random_features: true
   random_encoder: false
 
 studies:
