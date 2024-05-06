@@ -59,8 +59,8 @@ train:
   seed: 42
 
 ablations:
-  random_eeg_features: false
-  random_encoder_weights: false
+  random_features: false
+  random_encoder: false
 
 studies:
   path: "studies"

@@ -22,7 +22,7 @@ def build_brain_encoder(config):
 
     for name, param in model.named_parameters():
         if '0.' + name in weights:
-            if config.ablations.random_encoder_weights:
+            if config.ablations.random_encoder:
                 param.data = torch.rand(weights['0.' + name].shape)
             else:
                 param.data = weights['0.' + name]

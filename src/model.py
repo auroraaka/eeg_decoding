@@ -38,11 +38,11 @@ class BrainAdapter(ABC):
         pass
 
     def encode_images(self, eegs, subject_index):
+        if self.config.ablations.random_features:
+            eegs = torch.rand(eegs.shape, requires_grad=True)
         batch = SegmentBatch(meg=eegs, subject_index=subject_index)
         eeg_features = self.encoder(dict(meg=eegs), batch)
         eeg_features = self.projector(eeg_features)
-        if self.config.ablations.random_eeg_features:
-            eeg_features = torch.rand(eeg_features.shape, requires_grad=True)
         return eeg_features
     
     def prepare_inputs_labels_for_multimodal(self, input_ids, attention_mask, position_ids, past_key_values, labels, eegs, subject_index):
