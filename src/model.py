@@ -39,7 +39,7 @@ class BrainAdapter(ABC):
 
     def encode_images(self, eegs, subject_index):
         if self.config.ablations.random_features:
-            eegs = torch.rand(eegs.shape, requires_grad=True, device=eegs.device)
+            eegs = torch.rand(eegs.shape, requires_grad=True)
         batch = SegmentBatch(meg=eegs, subject_index=subject_index)
         eeg_features = self.encoder(dict(meg=eegs), batch)
         eeg_features = self.projector(eeg_features)

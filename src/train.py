@@ -2,9 +2,12 @@ import torch
 import json
 import os
 import matplotlib.pyplot as plt
+import numpy as np
 
+from transformers import Trainer, TrainingArguments
 from torch.utils.data import DataLoader, random_split
 from IPython.display import clear_output
+
 
 def make_splits(config, dataset, train=0.8, val=0.1, test=0.1):
     train_size = int(len(dataset) * train)
@@ -110,3 +113,30 @@ def update_plots(train_losses, train_perplexities, valid_losses, valid_perplexit
     
     plt.pause(0.1)
     plt.show()
+
+def train_with_trainer(config, model, train_dataloader, valid_dataloader):
+    training_args = TrainingArguments(
+        output_dir=f"{config.studies.path}/results",
+        num_train_epochs=config.train.epochs,
+        per_device_train_batch_size=config.train.batch_size,
+        per_device_eval_batch_size=config.train.batch_size,
+        warmup_steps=500,
+        weight_decay=0.01,
+        logging_dir=f"{config.studies.path}/logs",
+        logging_steps=10,
+    )
+
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=train_dataloader,
+        eval_dataset=valid_dataloader,
+        compute_metrics=compute_metrics  # Define this function to compute metrics
+    )
+
+    trainer.train()
+
+def compute_metrics(eval_pred):
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=-1)
+    return {"accuracy": (predictions == labels).mean()}
