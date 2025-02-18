@@ -1,2 +1,2 @@
-# Mapping from EEG to Text Space using LLM Prefix-Tuning
+# Mapping from EEG to Text Space via LLM Prefix-Tuning
 ![image](image.png)
